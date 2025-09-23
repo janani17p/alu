@@ -1,57 +1,58 @@
+`timescale 1ns / 1ps
 
 module tb_alu_bist_top;
 
-    // Clock and reset signals
-    reg clk;
-    reg reset;
-    reg bist_start;
+  reg clk;
+  reg reset;
+  reg bist_start;
+  wire bist_done, bist_pass, bist_fail;
 
-    // BIST outputs
-    wire bist_done;
-    wire bist_pass;
-    wire bist_fail;
+  alu_bist_top UUT (
+    .clk(clk),
+    .reset(reset),
+    .bist_start(bist_start),
+    .bist_done(bist_done),
+    .bist_pass(bist_pass),
+    .bist_fail(bist_fail)
+  );
 
-    // Instantiate the alu_bist_top module
-    alu_bist_top UUT (
-        .clk(clk),
-        .reset(reset),
-        .bist_start(bist_start),
-        .bist_done(bist_done),
-        .bist_pass(bist_pass),
-        .bist_fail(bist_fail)
-    );
+  // 100 MHz clock
+  initial clk = 0;
+  always #5 clk = ~clk;
 
-    // Generate clock signal (100 MHz)
-    always #5 clk = ~clk;
+  // safety timeout
+  initial begin
+    #100000;
+    $display("Timeout waiting for bist_done");
+    $finish;
+  end
 
-    // Testbench initial block
-    initial begin
-        // Initialize signals
-        clk = 0;
-        reset = 1;
-        bist_start = 0;
+  initial begin
+    // reset for two clean cycles
+    reset = 1;
+    bist_start = 0;
+    repeat (2) @(posedge clk);
+    reset = 0;
 
-        // Apply reset for a few clock cycles
-        #20; // Reset for 20 time units (4 clock cycles)
-        reset = 0; // Release reset after 20 time units
+    // start pulse aligned to clk
+    @(posedge clk); bist_start = 1;
+    @(posedge clk); bist_start = 0;
 
-        // Pulse the bist_start signal
-        bist_start = 1;
-        #10; // Wait for one clock cycle
-        bist_start = 0;
+    // wait for completion
+    @(posedge bist_done);
 
-        // Wait until bist_done is asserted
-        wait(bist_done);
+    if (bist_pass && !bist_fail) $display("PASS");
+    else                         $display("FAIL");
 
-        // Check the results
-        if (bist_pass) begin
-            $display("PASS");
-        end else begin
-            $display("FAIL");
-        end
+    $display("Testbench ran successfully.");
+    $finish;
+  end
 
-        // End simulation
-        $finish;
-    end
+  // optional waves
+  initial begin
+    $dumpfile("bist.vcd");
+    $dumpvars(0, tb_alu_bist_top);
+  end
 
 endmodule
+
