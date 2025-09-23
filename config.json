@@ -7,7 +7,7 @@
 		"model_id": "gpt-4o-mini",
 		"num_candidates": 5,
 		"iterations": 5,
-        "outdir": "outputs_rule90",
+        "outdir": "outputs_alu_bist",
         "log": "log.txt",
 		"ensemble": false
     }
